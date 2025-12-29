@@ -123,16 +123,45 @@ export const TextChat: React.FC<TextChatProps> = ({ courseContent, systemInstruc
     const lowerText = text.toLowerCase();
 
     // Heuristique : est-ce une question juridique ?
-    const looksLikeQuestion = lowerText.includes("?") || lowerText.length > 25 || lowerText.includes("qu'est-ce") || lowerText.includes("pourquoi") || lowerText.includes("comment") || lowerText.includes("arrêt") || lowerText.includes("service public");
-
+    
+    const looksLikeQuestion = 
+  lowerText.includes("?") || 
+  lowerText.includes("qu'est-ce") || 
+  lowerText.includes("pourquoi") || 
+  lowerText.includes("comment") ||
+  lowerText.includes("qcm") ||
+  lowerText.includes("vrai/faux") ||
+  lowerText.includes("vrai") ||
+  lowerText.includes("faux") ||
+  lowerText.includes("cas pratique") ||
+  lowerText.includes("dissertation") ||
+  lowerText.includes("arrêt") || 
+  lowerText.includes("service public") ||
+  lowerText.includes("contrat") ||
+  lowerText.includes("expliquez") ||
+  lowerText.includes("comparez") ||
+  lowerText.includes("différence") ||
+  lowerText.includes("tableau") ||
+  (lowerText.length > 30 && !lowerText.match(/^[a-zàâäéèêëïîôùûü\s'-]+$/i));
+  
     // Scénario : L'utilisateur refuse l'anonymat ou pose une question d'emblée
     const isInitialPrompt =
       lastMsg?.text.includes("faire connaissance") ||
       lastMsg?.text.includes("souhaitez-vous vous identifier") ||
       lastMsg?.text.includes("prénom") ||
       lastMsg?.text.includes("pseudo");
-    const looksLikeQuickAction = text.includes("progression") || text.includes("QCM") || text.includes("Vrai/Faux") || text.includes("Cas pratique") || text.includes("Expliquez-moi") || text.includes("Plan Dissertation") || text.includes("Listez les arrêts");
-
+      
+   const looksLikeQuickAction = 
+  lowerText.includes("progression") || 
+  lowerText.includes("qcm") || 
+  lowerText.includes("vrai/faux") || 
+  lowerText.includes("vrai") ||
+  lowerText.includes("faux") ||
+  lowerText.includes("cas pratique") || 
+  lowerText.includes("expliquez") || 
+  lowerText.includes("dissertation") || 
+  lowerText.includes("arrêt");
+    
     if (isInitialPrompt && (!currentProfile || currentProfile.name === 'Visiteur')) {
       if (text === "Je préfère rester anonyme" || (looksLikeQuestion && !overrideInput) || (looksLikeQuickAction && !overrideInput)) {
         const profile = createNewProfile("Visiteur");
@@ -525,14 +554,46 @@ export const TextChat: React.FC<TextChatProps> = ({ courseContent, systemInstruc
             </div>
           )}
           <div className="flex gap-2 mb-4 overflow-x-auto pb-2 no-scrollbar px-1">
-            <button onClick={() => sendMessage("Quel est mon bilan de progression ?")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-lg hover:bg-amber-100 transition-all whitespace-nowrap"><Trophy size={14} /> Ma progression</button>
-            <button onClick={() => sendMessage("Génère un QCM de 3 questions sur un ou plusieurs thèmes du cours que je vais t'indiquer")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap"><Search size={14} /> QCM</button>
-            <button onClick={() => sendMessage("Propose-moi 3 affirmations Vrai/Faux sur un ou plusieurs thèmes du cours que je vais t'indiquer")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all whitespace-nowrap"><BookOpen size={14} /> Vrai/Faux</button>
-            <button onClick={() => sendMessage("Soumets-moi un petit cas pratique sur un ou plusieurs thèmes du cours que je vais t'indiquer.")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-all whitespace-nowrap"><FileSignature size={14} /> Cas pratique</button>
-            <button onClick={() => sendMessage("Expliquez-moi simplement la notion suivante :")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap"><BookOpen size={14} /> Expliquez-moi...</button>
-            <button onClick={() => sendMessage("Propose-moi un sujet de dissertation et un plan détaillé (I. II.) basé sur un ou plusieurs thèmes du cours que je vais t'indiquer.")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 transition-all whitespace-nowrap"><BookOpen size={14} /> Plan Dissertation</button>
-            <button onClick={() => sendMessage("Listez les arrêts liés à des définitions, SVP.")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 transition-all whitespace-nowrap"><BookOpen size={14} /> Arrêts & définitions</button>
-            <button onClick={() => sendMessage("Listez les arrêts liés à un ou plusieurs thèmes du cours que je vais vous indiquer.")} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-cyan-700 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 transition-all whitespace-nowrap"><BookOpen size={14} /> Arrêts & notions clés</button>
+            
+            <button onClick={() => sendMessage("Quel est mon bilan de progression ?")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-amber-700 bg-amber-50 dark:bg-amber-900/30 border border-amber-200 rounded-lg hover:bg-amber-100 transition-all whitespace-nowrap">
+    <Trophy size={14} /> Ma progression
+  </button>
+  
+  <button onClick={() => sendMessage("Je voudrais faire un QCM de 3 questions")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/30 border border-blue-200 rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap">
+    <Search size={14} /> QCM
+  </button>
+  
+  <button onClick={() => sendMessage("Je voudrais faire 3 questions Vrai/Faux")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-rose-700 bg-rose-50 dark:bg-rose-900/30 border border-rose-200 rounded-lg hover:bg-rose-100 transition-all whitespace-nowrap">
+    <BookOpen size={14} /> Vrai/Faux
+  </button>
+  
+  <button onClick={() => sendMessage("Je voudrais travailler sur un cas pratique")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-emerald-700 bg-emerald-50 dark:bg-emerald-900/30 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 rounded-lg hover:bg-emerald-100 transition-all whitespace-nowrap">
+    <FileSignature size={14} /> Cas pratique
+  </button>
+  
+  <button onClick={() => sendMessage("Expliquez-moi simplement la notion suivante :")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-blue-700 bg-blue-50 dark:bg-blue-900/30 dark:text-blue-300 border border-blue-200 dark:border-blue-800 rounded-lg hover:bg-blue-100 transition-all whitespace-nowrap">
+    <BookOpen size={14} /> Expliquez-moi...
+  </button>
+  
+  <button onClick={() => sendMessage("Je voudrais un plan de dissertation")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-indigo-700 bg-indigo-50 dark:bg-indigo-900/30 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 rounded-lg hover:bg-indigo-100 transition-all whitespace-nowrap">
+    <BookOpen size={14} /> Plan Dissertation
+  </button>
+  
+  <button onClick={() => sendMessage("Listez les arrêts liés à des définitions, SVP.")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-purple-700 bg-purple-50 dark:bg-purple-900/30 dark:text-purple-300 border border-purple-200 dark:border-purple-800 rounded-lg hover:bg-purple-100 transition-all whitespace-nowrap">
+    <BookOpen size={14} /> Arrêts & définitions
+  </button>
+  
+  <button onClick={() => sendMessage("Listez les arrêts liés à un ou plusieurs thèmes du cours que je vais vous indiquer.")} 
+    className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-bold text-cyan-700 bg-cyan-50 dark:bg-cyan-900/30 dark:text-cyan-300 border border-cyan-200 dark:border-cyan-800 rounded-lg hover:bg-cyan-100 transition-all whitespace-nowrap">
+    <BookOpen size={14} /> Arrêts & notions clés
+  </button>
           </div>
           <div className="relative flex items-end gap-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-2xl border-2 border-slate-200 dark:border-slate-700">
             <button onClick={() => fileInputRef.current?.click()} className="p-3 text-slate-400 hover:text-slate-600"><Paperclip size={24} /></button>
