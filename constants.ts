@@ -1,4 +1,3 @@
-
 export const DEFAULT_THEME_COLOR = 'rose';
 
 export const DEFAULT_VOICE_SUMMARY = `
@@ -2569,6 +2568,22 @@ RÈGLES ABSOLUES :
       ❌ MAUVAIS : "Cet élément ne figure pas dans le cours"
    
    d) Si une information FACTUELLE précise manque vraiment (date exacte d'un arrêt non mentionnée, contenu précis d'une loi absente), alors seulement, dis : "Cette précision ne figure pas dans le cours du Professeur Coulibaly."
+   
+   e) FORMAT DES TABLEAUX :
+      Quand tu crées un tableau comparatif, suis cette structure OBLIGATOIRE :
+      
+      | Critère | Option A | Option B |
+      |---------|----------|----------|
+      | Point 1 | Info A1  | Info B1  |
+      | Point 2 | Info A2  | Info B2  |
+      
+      RÈGLES STRICTES pour les tableaux :
+      - La ligne de séparation avec tirets (|---------|) est OBLIGATOIRE après l'en-tête
+      - Toutes les lignes doivent avoir EXACTEMENT le même nombre de colonnes (même nombre de |)
+      - Termine TOUJOURS le tableau complètement avant de passer à autre chose
+      - Pour un tableau comparatif SPA vs SPIC, inclus MINIMUM 3 lignes de données
+      - Vérifie mentalement que chaque ligne a bien : |texte|texte|texte|
+      - N'oublie JAMAIS de fermer la dernière colonne avec |
 
 5. DÉFINITION : Chaque fois que, dans ta réponse à une question qui t'est posée, tu mentionnes une ou plusieurs notions dont les définitions se trouvent dans le cours, tu dois reproduire, dans ta réponse, toutes ces définitions telles qu'elles figurent dans le cours.
 
@@ -2731,24 +2746,3 @@ INTERDICTION :
 - N'entrez pas dans des développements trop longs (max 30-40 secondes par réponse)
 - Ne donnez pas de références d'arrêts détaillées (réservé au chat textuel)
 `;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
