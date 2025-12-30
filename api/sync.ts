@@ -11,31 +11,52 @@ export default async function handler(req: Request) {
     const kvUrl = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL || process.env.STORAGE_REST_API_URL;
     const kvToken = process.env.KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN || process.env.STORAGE_REST_API_TOKEN;
     const kvEnabled = kvUrl && kvToken;
+    const prefix = process.env.COURSE_ID ? `${process.env.COURSE_ID}_` : '';
 
-    // GET: Récupérer tous les profils (pour le dashboard prof)
+    // GET: Récupérer tous les profils (pour le dashboard prof) ou la config
     if (req.method === 'GET') {
         if (!kvEnabled) return new Response(JSON.stringify({ error: 'DATABASE_NOT_CONFIGURED', message: 'Veuillez configurer Vercel KV ou Upstash Redis.' }), { status: 500 });
 
-        try {
-            const profiles = await fetch(`${kvUrl}/get/global_profiles`, {
-                headers: { Authorization: `Bearer ${kvToken}` }
-            }).then(res => res.json()).then(data => JSON.parse(data.result || '[]'));
+        const { searchParams } = new URL(req.url);
+        const type = searchParams.get('type') || 'profiles';
+        const key = type === 'config' ? `${prefix}global_config` : `${prefix}global_profiles`;
 
-            return new Response(JSON.stringify(profiles), { headers: { 'Content-Type': 'application/json' } });
+        try {
+            const result = await fetch(`${kvUrl}/get/${key}`, {
+                headers: { Authorization: `Bearer ${kvToken}` }
+            }).then(res => res.json()).then(data => JSON.parse(data.result || (type === 'config' ? '{}' : '[]')));
+
+            return new Response(JSON.stringify(result), { headers: { 'Content-Type': 'application/json' } });
         } catch (e) {
-            return new Response(JSON.stringify([]), { status: 200 });
+            return new Response(JSON.stringify(type === 'config' ? {} : []), { status: 200 });
         }
     }
 
-    // POST: Sauvegarder ou mettre à jour un profil
+    // POST: Sauvegarder ou mettre à jour un profil ou la config
     if (req.method === 'POST') {
         if (!kvEnabled) return new Response(JSON.stringify({ error: 'DB_DISABLED' }), { status: 500 });
 
         try {
-            const { profile } = await req.json();
+            const payload = await req.json();
+
+            if (payload.type === 'config') {
+                // Sauvegarde simple de la config globale
+                await fetch(`${kvUrl}/set/${prefix}global_config`, {
+                    method: 'POST',
+                    headers: { Authorization: `Bearer ${kvToken}` },
+                    body: JSON.stringify(payload.data)
+                });
+                return new Response(JSON.stringify({ success: true }), { headers: { 'Content-Type': 'application/json' } });
+            }
+
+            // Sinon on traite comme un profil (historique)
+            const { profile } = payload;
+            if (!profile) return new Response(JSON.stringify({ error: 'MISSING_PROFILE' }), { status: 400 });
+
+            const profilesKey = `${prefix}global_profiles`;
 
             // On récupère la liste actuelle
-            const currentProfiles = await fetch(`${kvUrl}/get/global_profiles`, {
+            const currentProfiles = await fetch(`${kvUrl}/get/${profilesKey}`, {
                 headers: { Authorization: `Bearer ${kvToken}` }
             }).then(res => res.json()).then(data => JSON.parse(data.result || '[]'));
 
@@ -48,7 +69,7 @@ export default async function handler(req: Request) {
             }
 
             // On sauvegarde
-            await fetch(`${kvUrl}/set/global_profiles`, {
+            await fetch(`${kvUrl}/set/${profilesKey}`, {
                 method: 'POST',
                 headers: { Authorization: `Bearer ${kvToken}` },
                 body: JSON.stringify(currentProfiles)

@@ -229,6 +229,31 @@ export const useChatStore = () => {
     });
   };
 
+  const saveConfigToCloud = async (configData: any) => {
+    try {
+      await fetch('/api/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ type: 'config', data: configData })
+      });
+      return true;
+    } catch (e) {
+      console.error("Erreur sauvegarde config cloud", e);
+      return false;
+    }
+  };
+
+  const fetchConfigFromCloud = async () => {
+    try {
+      const res = await fetch('/api/sync?type=config');
+      const data = await res.json();
+      return data;
+    } catch (e) {
+      console.error("Erreur récupération config cloud", e);
+      return null;
+    }
+  };
+
   const getActiveSession = () => sessions.find(s => s.id === activeSessionId);
   const getCurrentProfile = () => profiles.find(p => p.id === currentProfileId);
 
@@ -249,6 +274,8 @@ export const useChatStore = () => {
     profiles,
     refreshProfiles,
     lastSync,
+    saveConfigToCloud,
+    fetchConfigFromCloud,
     currentProfile: getCurrentProfile(),
     activeSession: getActiveSession()
   };
