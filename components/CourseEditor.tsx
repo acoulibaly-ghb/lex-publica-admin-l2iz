@@ -17,6 +17,8 @@ interface CourseEditorProps {
   profiles: any[];
   onRefreshProfiles?: () => void;
   lastSync?: Date | null;
+  onSaveToCloud: (config: any) => Promise<boolean>;
+  onFetchFromCloud: () => Promise<any>;
 }
 
 type Tab = 'content' | 'instruction' | 'appearance' | 'stats';
@@ -44,16 +46,28 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
   onResetAll,
   profiles,
   onRefreshProfiles,
-  lastSync
+  lastSync,
+  onSaveToCloud,
+  onFetchFromCloud
 }) => {
   const [activeTab, setActiveTab] = useState<Tab>('content');
   const [activeSubTab, setActiveSubTab] = useState<SubTab>('master');
+
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'success' | 'error'>('idle');
 
   const [content, setContent] = useState(initialContent);
   const [voiceSummary, setVoiceSummary] = useState(initialVoiceSummary);
   const [instruction, setInstruction] = useState(initialInstruction);
   const [voiceInstruction, setVoiceInstruction] = useState(initialVoiceInstruction);
   const [themeColor, setThemeColor] = useState(initialThemeColor);
+
+  // Mise à jour locale si les props changent (cas du fetch cloud)
+  useEffect(() => { setContent(initialContent); }, [initialContent]);
+  useEffect(() => { setVoiceSummary(initialVoiceSummary); }, [initialVoiceSummary]);
+  useEffect(() => { setInstruction(initialInstruction); }, [initialInstruction]);
+  useEffect(() => { setVoiceInstruction(initialVoiceInstruction); }, [initialVoiceInstruction]);
+  useEffect(() => { setThemeColor(initialThemeColor); }, [initialThemeColor]);
 
   useEffect(() => {
     if (content === initialContent) return;
@@ -175,16 +189,126 @@ export const CourseEditor: React.FC<CourseEditorProps> = ({
                 </button>
               ))}
             </div>
-            <div className="pt-8 mt-4 border-t border-slate-200 dark:border-slate-800">
-              <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Zone de danger</h4>
-              <p className="text-xs text-slate-500 mb-4">Si vous avez fait trop de modifications et souhaitez revenir au cours d'origine du Professeur Coulibaly.</p>
-              <button
-                onClick={onResetAll}
-                className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-all active:scale-95"
-              >
-                <RefreshCw size={16} />
-                Réinitialiser Ada (Paramètres d'usine)
-              </button>
+            <div className="pt-8 mt-4 border-t border-slate-200 dark:border-slate-800 space-y-6">
+              <div>
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2 flex items-center gap-2">
+                  <UploadCloud size={18} className="text-blue-500" />
+                  Sauvegarde & Synchronisation Cloud
+                </h4>
+                <p className="text-xs text-slate-500 mb-4">Préservez vos réglages (cours, thèmes, instructions) dans le Cloud ou sur votre ordinateur.</p>
+
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={async () => {
+                      setIsSyncing(true);
+                      const success = await onSaveToCloud({
+                        course_content: content,
+                        voice_summary: voiceSummary,
+                        system_instruction: instruction,
+                        voice_instruction: voiceInstruction,
+                        theme_color: themeColor
+                      });
+                      setIsSyncing(false);
+                      setSyncStatus(success ? 'success' : 'error');
+                      setTimeout(() => setSyncStatus('idle'), 3000);
+                    }}
+                    disabled={isSyncing}
+                    className={`flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all active:scale-95 ${syncStatus === 'success' ? 'bg-emerald-500 text-white' : syncStatus === 'error' ? 'bg-red-500 text-white' : 'bg-blue-600 text-white hover:bg-blue-700'}`}
+                  >
+                    {isSyncing ? <RefreshCw size={16} className="animate-spin" /> : <UploadCloud size={16} />}
+                    {syncStatus === 'success' ? 'Synchronisé !' : syncStatus === 'error' ? 'Erreur Sync' : 'Sauvegarder sur le Cloud'}
+                  </button>
+
+                  <button
+                    onClick={async () => {
+                      if (window.confirm("Voulez-vous écraser vos réglages actuels par ceux sauvegardés sur le Cloud ?")) {
+                        const cloudConfig = await onFetchFromCloud();
+                        if (cloudConfig && cloudConfig.course_content) {
+                          // Note: La mise à jour effective se fera via useEffect(initialContent) dans App.tsx
+                          // App doit donc propager les changements.
+                          // Pour simplifier ici, on force le reload ou on utilise des setters de App
+                          alert("Configuration récupérée ! Elle sera appliquée au prochain rafraîchissement ou manuellement.");
+                          window.location.reload(); // Solution radicale mais efficace pour restaurer le state global
+                        } else {
+                          alert("Aucune configuration trouvée sur le Cloud.");
+                        }
+                      }
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
+                  >
+                    <Download size={16} />
+                    Récupérer du Cloud
+                  </button>
+
+                  <button
+                    onClick={() => {
+                      const backup = {
+                        course_content: content,
+                        voice_summary: voiceSummary,
+                        system_instruction: instruction,
+                        voice_instruction: voiceInstruction,
+                        theme_color: themeColor,
+                        export_date: new Date().toISOString()
+                      };
+                      const blob = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = `lex-publica-config-${new Date().toISOString().split('T')[0]}.json`;
+                      a.click();
+                    }}
+                    className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all"
+                  >
+                    <Download size={16} />
+                    Exporter (.json)
+                  </button>
+
+                  <label className="flex items-center gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 rounded-lg text-sm font-bold hover:bg-slate-200 transition-all cursor-pointer">
+                    <UploadCloud size={16} />
+                    Importer (.json)
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".json"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => {
+                            try {
+                              const cfg = JSON.parse(ev.target?.result as string);
+                              if (cfg.course_content) {
+                                if (window.confirm("Importer cette configuration ? Cela écrasera vos réglages actuels.")) {
+                                  // Idem: on pourrait utiliser des setters, mais le reload est plus propre pour réinitialiser tout le state
+                                  localStorage.setItem('course_content', cfg.course_content);
+                                  localStorage.setItem('voice_summary', cfg.voice_summary);
+                                  localStorage.setItem('system_instruction', cfg.system_instruction);
+                                  localStorage.setItem('voice_instruction', cfg.voice_instruction);
+                                  localStorage.setItem('theme_color', cfg.theme_color);
+                                  window.location.reload();
+                                }
+                              }
+                            } catch (err) { alert("Fichier JSON invalide."); }
+                          };
+                          reader.readAsText(file);
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+              </div>
+
+              <div className="pt-6 border-t border-slate-100 dark:border-slate-800">
+                <h4 className="text-sm font-bold text-slate-800 dark:text-slate-200 mb-2">Zone de danger</h4>
+                <p className="text-xs text-slate-500 mb-4">Si vous avez fait trop de modifications et souhaitez revenir au cours d'origine du Professeur Coulibaly.</p>
+                <button
+                  onClick={onResetAll}
+                  className="flex items-center gap-2 px-4 py-2 bg-red-50 text-red-600 border border-red-200 rounded-lg text-sm font-bold hover:bg-red-100 transition-all active:scale-95"
+                >
+                  <RefreshCw size={16} />
+                  Réinitialiser Ada (Paramètres d'usine)
+                </button>
+              </div>
             </div>
           </div>
         )}

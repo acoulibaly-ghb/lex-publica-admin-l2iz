@@ -16,7 +16,7 @@ const themeStyles: Record<string, { bg: string, text: string }> = {
 };
 
 const App = () => {
-  const { profiles, refreshProfiles, lastSync } = useChatStore();
+  const { profiles, refreshProfiles, lastSync, saveConfigToCloud, fetchConfigFromCloud } = useChatStore();
   const [activeMode, setActiveMode] = useState<AppMode>(AppMode.TEXT);
   const [courseContent, setCourseContent] = useState<string>(DEFAULT_COURSE_CONTENT);
   const [voiceSummary, setVoiceSummary] = useState<string>(DEFAULT_VOICE_SUMMARY);
@@ -55,7 +55,28 @@ const App = () => {
     });
   }, []);
 
-  // Save changes to localStorage
+  useEffect(() => {
+    const loadCloudConfig = async () => {
+      const cloudConfig = await fetchConfigFromCloud();
+      if (cloudConfig && cloudConfig.course_content) {
+        setCourseContent(cloudConfig.course_content);
+        setVoiceSummary(cloudConfig.voice_summary);
+        setSystemInstruction(cloudConfig.system_instruction);
+        setVoiceInstruction(cloudConfig.voice_instruction);
+        setThemeColor(cloudConfig.theme_color);
+
+        // On met aussi à jour le localStorage pour que ce soit dispo hors ligne
+        localStorage.setItem('course_content', cloudConfig.course_content);
+        localStorage.setItem('voice_summary', cloudConfig.voice_summary);
+        localStorage.setItem('system_instruction', cloudConfig.system_instruction);
+        localStorage.setItem('voice_instruction', cloudConfig.voice_instruction);
+        localStorage.setItem('theme_color', cloudConfig.theme_color);
+      }
+    };
+    loadCloudConfig();
+  }, []);
+
+  // Save changes to localStorage (existants)
   useEffect(() => { localStorage.setItem('course_content', courseContent); }, [courseContent]);
   useEffect(() => { localStorage.setItem('voice_summary', voiceSummary); }, [voiceSummary]);
   useEffect(() => { localStorage.setItem('system_instruction', systemInstruction); }, [systemInstruction]);
@@ -216,6 +237,8 @@ const App = () => {
                 profiles={profiles}
                 onRefreshProfiles={refreshProfiles}
                 lastSync={lastSync}
+                onSaveToCloud={saveConfigToCloud}
+                onFetchFromCloud={fetchConfigFromCloud}
               />
             ) : (
               <div className="flex items-center justify-center h-full">
